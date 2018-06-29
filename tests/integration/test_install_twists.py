@@ -59,6 +59,46 @@ zip_safe=False
         assert 'six' in p.lockfile['default']
 
 
+@pytest.mark.install
+@pytest.mark.local
+def test_multiple_editable_dependencies_bleach_bug(PipenvInstance, pypi):
+    """Test-case for the issue reported here:
+       https://github.com/pypa/pipenv/issues/2446
+    """
+    with PipenvInstance(pypi=pypi, chdir=True) as p:
+        project = Project()
+        testlib1 = os.path.join(p.path, 'testlib1')
+        os.mkdir(testlib1)
+        with open(os.path.join(testlib1, 'setup.py'), 'w') as fh:
+            contents = """
+from setuptools import setup, find_packages
+setup(
+name='testpipenv',
+version='0.1',
+packages=[],
+install_requires=['bleach'],
+)
+            """.strip()
+            fh.write(contents)
+        c = p.pipenv('install -e {0}'.format(testlib1))
+        assert c.return_code == 0
+        testlib2 = os.path.join(p.path, 'testlib2')
+        os.mkdir(testlib2)
+        with open(os.path.join(testlib2, 'setup.py'), 'w') as fh:
+            contents = """
+from setuptools import setup, find_packages
+setup(
+name='testpipenv2',
+version='0.1',
+packages=[],
+install_requires=['bleach==1.5.0'],
+)
+            """.strip()
+            fh.write(contents)
+        c = p.pipenv('install -e {0}'.format(testlib2))
+        assert c.return_code == 0
+
+
 @pytest.mark.e
 @pytest.mark.install
 @pytest.mark.skip(reason="this doesn't work on windows")
